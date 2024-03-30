@@ -132,6 +132,9 @@ class Character extends GameObject {
         if (this.bottom > this.y && this.gravityEnabled)
             this.y += GameEnv.gravity;
 
+        this.setX(this.x);  // reset with bounds check
+        this.setY(this.y);  // reset with bounds check
+
         // Update animation frameX of the object
         if (this.frameX < this.maxFrame) {
             this.frameX++;
