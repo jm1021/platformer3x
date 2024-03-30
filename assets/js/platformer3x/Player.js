@@ -23,9 +23,15 @@ export class Player extends Character {
         // Player control data
         this.moveSpeed = this.speed * 3;
         this.pressedKeys = {};
-        this.movement = {up: true, down: true, left: true, right: true};
-        this.isIdle = true;
         this.directionKey = "d"; // initially facing right
+
+        // Player state data
+        this.state = {
+            base: 'floor', // 'floor', 'jumpplatform', 'tube'
+            idle: true, 
+            gravity: true,
+            movement: {up: true, down: true, left: true, right: true},
+        };
 
         // Store a reference to the event listener function
         this.keydownListener = this.handleKeyDown.bind(this);
@@ -62,13 +68,13 @@ export class Player extends Character {
     isKeyActionDash(key) { return key === "s"; }
 
     // helper: action key is in queue 
-    isActiveAnimation(key) { return (key in this.pressedKeys) && !this.isIdle; }
+    isActiveAnimation(key) { return (key in this.pressedKeys) && !this.state.idle; }
     // helper: gravity action key is in queue
     isActiveGravityAnimation(key) {
-        var result = this.isActiveAnimation(key) && (this.bottom <= this.y || this.movement.down === false);
+        var result = this.isActiveAnimation(key) && (this.bottom <= this.y || this.state.movement.down === false);
     
         // return to directional animation (direction?)
-        if (this.bottom <= this.y || this.movement.down === false) {
+        if (this.bottom <= this.y || this.state.movement.down === false) {
             this.setAnimation(this.directionKey);
         }
     
@@ -119,22 +125,22 @@ export class Player extends Character {
         this.setFrameY(animation.row);
         this.setMinFrame(animation.min ? animation.min : 0);
         this.setMaxFrame(animation.frames);
-        if (this.isIdle && animation.idleFrame) {
+        if (this.state.idle && animation.idleFrame) {
             this.setFrameX(animation.idleFrame.column)
             this.setMinFrame(animation.idleFrame.frames);
         }
     }
-   
+ 
     /**
-     * gameloop: updates the player's state and position.
-     * In each refresh cycle of the game loop, the player-specific movement is updated.
-     * - If the player is moving left or right, the player's x position is updated.
-     * - If the player is dashing, the player's x position is updated at twice the speed.
-     * This method overrides Character.update, which overrides GameObject.update. 
-     * @override
+     * gameloop: updates the player's position on the "jumpplatform" platform.
      */
+    platformUpdate() {
+    }
 
-    update() {
+    /**
+     * gameloop: updates the player's position on the "floor" platform.
+     */
+    floorUpdate() {
         //Update the Player Position Variables to match the position of the player
         GameEnv.PlayerPosition.playerX = this.x;
         GameEnv.PlayerPosition.playerY = this.y;
@@ -152,11 +158,11 @@ export class Player extends Character {
 
         // Player moving right 
         if (this.isActiveAnimation("a")) {
-            if (this.movement.left) this.x -= this.isActiveAnimation("s") ? this.moveSpeed : this.speed;  // Move to left
+            if (this.state.movement.left) this.x -= this.isActiveAnimation("s") ? this.moveSpeed : this.speed;  // Move to left
         }
         // Player moving left
         if (this.isActiveAnimation("d")) {
-            if (this.movement.right) this.x += this.isActiveAnimation("s") ? this.moveSpeed : this.speed;  // Move to right
+            if (this.state.movement.right) this.x += this.isActiveAnimation("s") ? this.moveSpeed : this.speed;  // Move to right
         }
         // Player moving at dash speed left or right 
         if (this.isActiveAnimation("s")) {}
@@ -172,7 +178,7 @@ export class Player extends Character {
                 } else {
                     this.y -= (this.bottom * .30);
                 }
-            } else if (this.movement.down === false) {
+            } else if (this.state.movement.down === false) {
                 this.y -= (this.bottom * .15);  // platform jump height
             }
         }
@@ -205,6 +211,23 @@ export class Player extends Character {
     }
 
     /**
+     * gameloop: updates the player's state and position.
+     * In each refresh cycle of the game loop, the player-specific movement is updated.
+     * - If the player is moving left or right, the player's x position is updated.
+     * - If the player is dashing, the player's x position is updated at twice the speed.
+     * This method overrides Character.update, which overrides GameObject.update. 
+     * @override
+     */
+    update() {
+        // Player state update
+        if (this.state.base === 'floor') {
+            this.floorUpdate();
+        } else if (this.state.base === 'jumpplatform') {
+            this.platformUpdate();
+        }
+    }
+
+    /**
      * gameloop:  responds to level change and game over destroy player object
      * This method is used to remove the event listeners for keydown and keyup events.
      * After removing the event listeners, it calls the parent class's destroy player object. 
@@ -221,25 +244,30 @@ export class Player extends Character {
     }
 
     /**
-     * gameloop: performs action on collisions
-     * Handles the player's actions when a collision occurs.
-     * This method checks the collision, type of game object, and then to determine action, e.g game over, animation, etc.
-     * Depending on the side of the collision, it performs player action, e.g. stops movement, etc.
-     * This method overrides GameObject.collisionAction. 
-     * @override
+     * gameloop: performs action on jump platform
+     * Handles idle, gravity, and movement flags.
+     * Handles the player's actions when a collision occurs with other game objects. 
+     */ 
+    jumpPlatformAction() {
+    }
+
+    /**
+     * gameloop: performs action on floor
+     * Handles idle, gravity, and movement flags.
+     * Handles the player's actions when a collision occurs with other game objects.
      */
-    collisionAction() {
+    floorAction() {
         // Tube collision check
         if (this.collisionData.touchPoints.other.id === "tube" 
             || this.collisionData.touchPoints.other.id === "tree") {
 
             // Collision with the left side of the Tube
             if (this.collisionData.touchPoints.other.left) {
-                this.movement.right = false;
+                this.state.movement.right = false;
             }
             // Collision with the right side of the Tube
             if (this.collisionData.touchPoints.other.right) {
-                this.movement.left = false;
+                this.state.movement.left = false;
             }
             // Collision with the top of the player
             if (this.collisionData.touchPoints.other.bottom) {
@@ -255,8 +283,8 @@ export class Player extends Character {
             }
         } else {
             // Reset movement flags if not colliding with a tube
-            this.movement.left = true;
-            this.movement.right = true;
+            this.state.movement.left = true;
+            this.state.movement.right = true;
         }
 
         // Goomba collision check
@@ -286,7 +314,7 @@ export class Player extends Character {
 
         if (this.collisionData.touchPoints.other.id === "jumpPlatform") {
             if (this.collisionData.touchPoints.other.left) {
-                this.movement.right = false;
+                this.state.movement.right = false;
                 this.gravityEnabled = true;
                 this.y -= GameEnv.gravity; // allows movemnt on platform, but climbs walls
 
@@ -294,22 +322,38 @@ export class Player extends Character {
 
             }
             if (this.collisionData.touchPoints.other.right) {
-                this.movement.left = false;
+                this.state.movement.left = false;
                 this.gravityEnabled = true;
                 this.y -= GameEnv.gravity; // allows movemnt on platform, but climbs walls
  
                 // this.x += this.isActiveAnimation("s") ? this.moveSpeed : this.speed;  // Move to right
             }
             if (this.collisionData.touchPoints.this.top) {
-                this.movement.down = false; // enable movement down without gravity
+                this.state.movement.down = false; // enable movement down without gravity
                 this.gravityEnabled = false;
                 this.setAnimation(this.directionKey); // set animation to direction
             }
         }
         // Fall Off edge of Jump platform
-        else if (this.movement.down === false) {
-            this.movement.down = true;          
+        else if (this.state.movement.down === false) {
+            this.state.movement.down = true;          
             this.gravityEnabled = true;
+        }
+    }
+
+    /**
+     * gameloop: performs action on collisions
+     * Handles the player's actions when a collision occurs.
+     * This method checks the collision, type of game object, and then to determine action, e.g game over, animation, etc.
+     * Depending on the side of the collision, it performs player action, e.g. stops movement, etc.
+     * This method overrides GameObject.collisionAction. 
+     * @override
+     */
+    collisionAction() { 
+        if (this.state.base === 'floor') {
+           this.floorAction();
+        } else if (this.state.base === 'jumpplatform') {
+            this.jumpPlatformAction();
         }
     }
 
@@ -339,7 +383,7 @@ export class Player extends Character {
                 this.pressedKeys[event.key] = this.playerData[key];
                 this.setAnimation(key);
                 // player active
-                this.isIdle = false;
+                this.state.idle = false;
                 GameEnv.transitionHide = true;
             }
 
@@ -379,7 +423,7 @@ export class Player extends Character {
                 delete this.pressedKeys[event.key];
             }
             // player idle
-            this.isIdle = true;
+            this.state.idle = true;
             // dash action off
             if (this.isKeyActionDash(key)) {
                 this.canvas.style.filter = 'invert(0)';
