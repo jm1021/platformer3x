@@ -280,9 +280,10 @@ export class Player extends Character {
         const isNewJumpPlatform = isJumpPlatform && this.state.object !== this.collisionData.other;
 
         if (isCurrentPlatform) { // stay on jump platform state 
-            // no action
+            this.y -= GameEnv.gravity; // allows movemnt on platform, but climbs walls       
         } else if (isNewJumpPlatform) { // transition to new jump platform
             this.state.object = this.collisionData.other;
+            this.y -= GameEnv.gravity; // allows movemnt on platform, but climbs walls       
         }
     }
 
