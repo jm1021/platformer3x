@@ -178,6 +178,7 @@ class GameObject {
     
         // Determine hit and touch points of hit
         this.collisionData = {
+            other: other,
             newX: thisRectLeftNew, // proportionally adjust left to center over other object
             hit: (
                 thisLeft < otherRect.right &&
