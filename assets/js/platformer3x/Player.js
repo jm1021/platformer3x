@@ -158,8 +158,8 @@ export class Player extends Character {
         if (this.isActiveAnimation("s")) {}
 
         // Player jumping
-        this.gravityEnabled = this.state.gravity;
         if (this.isActiveGravityAnimation("w")) {
+            this.gravityEnabled = this.state.gravity = true;
             GameEnv.playSound("PlayerJump");
             if (this.gravityEnabled) {
                 if (GameEnv.difficulty === "easy") {
