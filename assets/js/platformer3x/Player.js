@@ -159,7 +159,6 @@ export class Player extends Character {
 
         // Player jumping
         if (this.isActiveGravityAnimation("w")) {
-            this.gravityEnabled = this.state.gravity = true;
             GameEnv.playSound("PlayerJump");
             if (this.gravityEnabled) {
                 if (GameEnv.difficulty === "easy") {
@@ -172,6 +171,8 @@ export class Player extends Character {
             } else if (this.state.movement.down === false) {
                 this.y -= (this.bottom * .15);  // platform jump height
             }
+            this.state = {...this.floorState}; // back to floor state 
+            this.gravityEnabled = true;
         }
     }
  
@@ -179,13 +180,13 @@ export class Player extends Character {
      * gameloop: updates the player's position on the "jumpplatform" platform.
      */
     platformUpdate() {
-        this.commonUpdate();
-
         // Check if the player has moved off the edge of the jump platform
         if (this.x < this.state.object.x || this.x > this.state.object.x + this.state.object.width) {
             // Return to floor state
             this.state = {...this.floorState};
-    }
+        }
+
+        this.commonUpdate();
     }
 
     /**
