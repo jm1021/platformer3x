@@ -69,18 +69,6 @@ export class SettingsControl extends LocalStorage{
         // Load all keys from local storage
         this.loadAll();
 
-        window.addEventListener("difficulty", (e) => {
-            // Update the difficulty value when a difficulty event is fired
-            this[this.keys.difficulty] = e.detail.difficulty();
-            // Update the difficulty value in the game environment
-            GameEnv.difficulty = parseFloat(this[this.keys.difficulty]);
-            // Save the difficulty value to local storage
-            this.save(this.keys.difficulty);
-    
-            // Reload the game to apply the new difficulty settings
-            this.reloadGame();
-        });
-
         /**
          * Handles a key by checking if it exists in local storage and parsing its value.
          * If the key does not exist in local storage, it sets the key to the current value of the game environment variable.
@@ -172,16 +160,19 @@ export class SettingsControl extends LocalStorage{
             this.save(this.keys.gravity); 
         });
 
-        // Listen for the 'gravity' update event
-        window.addEventListener("difficulty",(e)=>{ 
-            // Update the gravity value when a gravity event is fired
+        // Listen for the 'difficulty' update event
+        window.addEventListener("difficulty", (e) => {
+            // Update the difficulty value when a difficulty event is fired
             this[this.keys.difficulty] = e.detail.difficulty();
-            // Update the gravity value in the game environment
-            GameEnv.difficulty = parseFloat(this[this.keys.difficulty]); 
-            // Save the gravity value to local storage
-            this.save(this.keys.difficulty); 
+            // Update the difficulty value in the game environment
+            GameEnv.difficulty = parseFloat(this[this.keys.difficulty]);
+            // Save the difficulty value to local storage
+            this.save(this.keys.difficulty);
+    
+            // Reload the game to apply the new difficulty settings
+            this.reloadGame();
         });
- 
+
     }
 
     /**
