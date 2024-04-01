@@ -13,36 +13,18 @@ import GameControl from './GameControl.js';
  * @extends Character
  */
 export class Player extends Character {
-    // Default floor state
-    floorState = {
-        id: 'floor',
-        idle: true,
-        range: {bottom: GameEnv.bottom, top: GameEnv.top, left: GameEnv.left, right: GameEnv.right},      
-        movement: {up: true, down: true, left: true, right: true},
-        rect: null, // extents of the platform: left, right, top, bottom
-        other: null, // reference to the platform object
-    };
-
     // instantiation: constructor sets up player object 
     constructor(canvas, image, data) {
         super(canvas, image, data);
-        // Player Data
-        GameEnv.player = this; // Global player object
-        this.playerData = data; // GameSetup data
-        this.name = GameEnv.userID; // name of the player
-        this.shouldBeSynced = true; // multi-player sync
-        this.state = {...this.floorState}; // start with player on the floor 
-
-        // ??  needed to start the game
-        this.isDying = false;
-        this.isDyingR = false;
-        this.timer = false;
+        // Player Data is required for Animations
+        this.playerData = data;
         GameEnv.invincible = false; 
-        this.transitionHide = false;
-        
+
         // Player control data
         this.moveSpeed = this.speed * 3;
         this.pressedKeys = {};
+        this.movement = {up: true, down: true, left: true, right: true};
+        this.isIdle = true;
         this.directionKey = "d"; // initially facing right
 
         // Store a reference to the event listener function
@@ -52,6 +34,15 @@ export class Player extends Character {
         // Add event listeners
         document.addEventListener('keydown', this.keydownListener);
         document.addEventListener('keyup', this.keyupListener);
+
+        GameEnv.player = this;
+        this.transitionHide = false;
+        this.shouldBeSynced = true;
+        this.isDying = false;
+        this.isDyingR = false;
+        this.timer = false;
+
+        this.name = GameEnv.userID;
     }
 
     /**
@@ -59,15 +50,6 @@ export class Player extends Character {
      * Each method checks a specific condition and returns a boolean indicating whether that condition is met.
      */
 
-    // helper: gravity check 
-    //isGravity() { return this.state.id === 'floor'; }
-    isGravity() { 
-        if (this.state.id === 'platform') {
-            return this.bottom > this.state.other.bottom;
-        } else {
-            return true;
-        }
-    }
     // helper: player facing left
     isFaceLeft() { return this.directionKey === "a"; }
     // helper: left action key is pressed
@@ -80,35 +62,40 @@ export class Player extends Character {
     isKeyActionDash(key) { return key === "s"; }
 
     // helper: action key is in queue 
-    isActiveAnimation(key) { return (key in this.pressedKeys) && !this.state.idle; }
+    isActiveAnimation(key) { return (key in this.pressedKeys) && !this.isIdle; }
     // helper: gravity action key is in queue
     isActiveGravityAnimation(key) {
-        var result = this.isActiveAnimation(key) && (this.bottom <= this.y || this.state.movement.down === false);
+        var result = this.isActiveAnimation(key) && (this.bottom <= this.y || this.movement.down === false);
     
         // return to directional animation (direction?)
-        if (this.bottom <= this.y || this.state.movement.down === false) {
+        if (this.bottom <= this.y || this.movement.down === false) {
             this.setAnimation(this.directionKey);
         }
     
         return result;
     }
 
-    /**
-     * gameloop:  responds to level change and game over destroy player object
-     * This method is used to remove the event listeners for keydown and keyup events.
-     * After removing the event listeners, it calls the parent class's destroy player object. 
-     * This method overrides GameObject.destroy.
-     * @override
-     */
-    destroy() {
-        // Remove event listeners
-        document.removeEventListener('keydown', this.keydownListener);
-        document.removeEventListener('keyup', this.keyupListener);
+    goombaCollision() {
+        if (this.timer === false) {
+            this.timer = true;
+            if (GameEnv.difficulty === "normal" || GameEnv.difficulty === "hard") {
+                this.canvas.style.transition = "transform 0.5s";
+                this.canvas.style.transform = "rotate(-90deg) translate(-26px, 0%)";
+                GameEnv.playSound("PlayerDeath");
 
-        // Call the parent class's destroy method
-        super.destroy();
+                if (this.isDying == false) {
+                    this.isDying = true;
+                    setTimeout(async() => {
+                        await GameControl.transitionToLevel(GameEnv.levels[GameEnv.levels.indexOf(GameEnv.currentLevel)]);
+                        console.log("level restart")
+                        this.isDying = false;
+                    }, 900); 
+                }
+            } else if (GameEnv.difficulty === "easy") {
+                this.x += 10;
+            }
+        }
     }
-
     /**
      * This helper method that acts like an animation manager. Frames are set according to player events.
      *  - Sets the animation of the player based on the provided key.
@@ -132,21 +119,11 @@ export class Player extends Character {
         this.setFrameY(animation.row);
         this.setMinFrame(animation.min ? animation.min : 0);
         this.setMaxFrame(animation.frames);
-        if (this.state.idle && animation.idleFrame) {
+        if (this.isIdle && animation.idleFrame) {
             this.setFrameX(animation.idleFrame.column)
             this.setMinFrame(animation.idleFrame.frames);
         }
     }
-
-    platformUpdate() {
-        // Check if the player has moved off the edge of the platform
-        if (!this.state || // short circuit if no object
-            !this.isCollision(this.state.other)) {
-            // return to the floor state
-            this.state = {...this.floorState};
-        }
-    }
-    
    
     /**
      * gameloop: updates the player's state and position.
@@ -158,10 +135,9 @@ export class Player extends Character {
      */
 
     update() {
-
-        if (this.state.id === 'platform') {
-            this.platformUpdate();
-        }
+        //Update the Player Position Variables to match the position of the player
+        GameEnv.PlayerPosition.playerX = this.x;
+        GameEnv.PlayerPosition.playerY = this.y;
 
         // GoombaBounce deals with player.js and goomba.js
         if (GameEnv.goombaBounce === true) {
@@ -176,11 +152,11 @@ export class Player extends Character {
 
         // Player moving right 
         if (this.isActiveAnimation("a")) {
-            if (this.state.movement.left) this.x -= this.isActiveAnimation("s") ? this.moveSpeed : this.speed;  // Move to left
+            if (this.movement.left) this.x -= this.isActiveAnimation("s") ? this.moveSpeed : this.speed;  // Move to left
         }
         // Player moving left
         if (this.isActiveAnimation("d")) {
-            if (this.state.movement.right) this.x += this.isActiveAnimation("s") ? this.moveSpeed : this.speed;  // Move to right
+            if (this.movement.right) this.x += this.isActiveAnimation("s") ? this.moveSpeed : this.speed;  // Move to right
         }
         // Player moving at dash speed left or right 
         if (this.isActiveAnimation("s")) {}
@@ -196,13 +172,24 @@ export class Player extends Character {
                 } else {
                     this.y -= (this.bottom * .30);
                 }
-            } else if (this.state.movement.down === false) {
+            } else if (this.movement.down === false) {
                 this.y -= (this.bottom * .15);  // platform jump height
             }
         }
 
-        //Stop background scrolling when player reaches left of screen
+        //Prevent Player from Dashing Through Tube
+        let tubeX = (.80 * GameEnv.innerWidth)
+        if (this.x >= tubeX && this.x <= GameEnv.innerWidth) {
+            this.x = tubeX - 1;
+
+            GameEnv.backgroundHillsSpeed = 0;
+            GameEnv.backgroundMountainsSpeed = 0;
+        }
+
+        //Prevent Player from Leaving from Screen
         if (this.x < 0) {
+            this.x = 1;
+
             GameEnv.backgroundHillsSpeed = 0;
             GameEnv.backgroundMountainsSpeed = 0;
         }
@@ -215,45 +202,22 @@ export class Player extends Character {
             GameEnv.goombaBoost = false;
             this.y = this.y - 150;
         }
-
-        //Update the Player Position Variables to match the position of the player
-        GameEnv.PlayerPosition.playerX = this.x;
-        GameEnv.PlayerPosition.playerY = this.y;
-        this.gravityEnabled = this.isGravity(); //gravity activation check 
-
     }
 
-   /**
-     * gameloop: performs action on jump platform
-     * Handles idle, gravity, and movement flags.
-     * Handles the player's actions when a collision occurs with other game objects. 
-     */ 
-   platformAction() {
-        if (this.state.id === 'platform') {
-            const isJumpOnTop = this.collisionData.touchPoints.this.top;
-            const isHitOnLeftSide = this.collisionData.touchPoints.this.left;
-            const isHitOnRightSide = this.collisionData.touchPoints.this.right;
-            const isHitOnBottom = this.collisionData.touchPoints.this.bottom;
+    /**
+     * gameloop:  responds to level change and game over destroy player object
+     * This method is used to remove the event listeners for keydown and keyup events.
+     * After removing the event listeners, it calls the parent class's destroy player object. 
+     * This method overrides GameObject.destroy.
+     * @override
+     */
+    destroy() {
+        // Remove event listeners
+        document.removeEventListener('keydown', this.keydownListener);
+        document.removeEventListener('keyup', this.keyupListener);
 
-            // respond to collision action
-            if (isJumpOnTop) { 
-                this.state.range = this.state.rect; // set left/right range of x extents
-            } else if (isHitOnLeftSide) { 
-                this.state.movement.right = false; // stop movement right
-                this.y -= GameEnv.gravity; // allows it to climb up side of platform 
-            } else if (isHitOnRightSide) { 
-                this.state.movement.left = false; // stop movement left
-                this.y -= GameEnv.gravity; // allows it to climb up side of platform
-            } else if (isHitOnBottom) { 
-                this.state = {...this.floorState};
-            }
-        // activate platform state
-        } else if (this.state.id === 'floor') {
-            this.state.id = 'platform';
-            this.state.rect = this.collisionData.other.rect;
-            this.state.other = this.collisionData.other.object;
-        }
-
+        // Call the parent class's destroy method
+        super.destroy();
     }
 
     /**
@@ -265,8 +229,85 @@ export class Player extends Character {
      * @override
      */
     collisionAction() {
+        // Tube collision check
+        if (this.collisionData.touchPoints.other.id === "tube" 
+            || this.collisionData.touchPoints.other.id === "tree") {
+
+            // Collision with the left side of the Tube
+            if (this.collisionData.touchPoints.other.left) {
+                this.movement.right = false;
+            }
+            // Collision with the right side of the Tube
+            if (this.collisionData.touchPoints.other.right) {
+                this.movement.left = false;
+            }
+            // Collision with the top of the player
+            if (this.collisionData.touchPoints.other.bottom) {
+                this.x = this.collisionData.newX;
+                this.gravityEnabled = false; // stop gravity
+                // Pause for two seconds
+                setTimeout(() => {   // animation in tube for 1 seconds
+                    this.gravityEnabled = true;
+                    setTimeout(() => { // move to end of screen for end of game detection
+                        this.x = GameEnv.innerWidth + 1;
+                    }, 1000);
+                }, 1000);
+            }
+        } else {
+            // Reset movement flags if not colliding with a tube
+            this.movement.left = true;
+            this.movement.right = true;
+        }
+
+        // Goomba collision check
+        // Checks if collision touchpoint id is either "goomba" or "flyingGoomba"
+        if (this.collisionData.touchPoints.other.id === "goomba" || this.collisionData.touchPoints.other.id === "flyingGoomba") {
+            if (GameEnv.invincible === false) {
+                GameEnv.goombaInvincible = true;
+                // Collision with the left side of the Enemy
+                if (this.collisionData.touchPoints.other.left && !this.collisionData.touchPoints.other.bottom && !this.collisionData.touchPoints.other.top && GameEnv.invincible === false && this.timer === false) {
+                    setTimeout(this.goombaCollision.bind(this), 50);
+                } else if (this.collisionData.touchPoints.other.right && !this.collisionData.touchPoints.other.bottom && !this.collisionData.touchPoints.other.top && GameEnv.invincible === false && this.timer === false) {
+                    setTimeout(this.goombaCollision.bind(this), 50);
+                }
+
+                // Collision with the right side of the Enemy
+            }
+        } 
+
+        if (this.collisionData.touchPoints.other.id === "mushroom") {
+            GameEnv.destroyedMushroom = true;
+            this.canvas.style.filter = 'invert(1)';
+        
+            setTimeout(() => {
+                this.canvas.style.filter = 'invert(0)';
+            }, 2000); // 2000 milliseconds = 2 seconds
+        }
+
         if (this.collisionData.touchPoints.other.id === "jumpPlatform") {
-            this.platformAction();
+            if (this.collisionData.touchPoints.this.top) {
+                this.movement.down = false; // enable movement down without gravity
+                this.gravityEnabled = false;
+                this.setAnimation(this.directionKey); // set animation to direction
+            } else {
+                if (this.collisionData.touchPoints.other.left) {
+                    this.movement.right = false;
+                    this.gravityEnabled = true;
+                    this.y -= GameEnv.gravity; // allows movemnt on platform, but climbs walls
+                }
+                if (this.collisionData.touchPoints.other.right) {
+                    this.movement.left = false;
+                    this.gravityEnabled = true;
+                    this.y -= GameEnv.gravity; // allows movemnt on platform, but climbs walls
+                }
+            }
+    
+            
+        }
+        // Fall Off edge of Jump platform
+        else if (this.movement.down === false) {
+            this.movement.down = true;          
+            this.gravityEnabled = true;
         }
     }
 
@@ -296,7 +337,7 @@ export class Player extends Character {
                 this.pressedKeys[event.key] = this.playerData[key];
                 this.setAnimation(key);
                 // player active
-                this.state.idle = false;
+                this.isIdle = false;
                 GameEnv.transitionHide = true;
             }
 
@@ -336,7 +377,7 @@ export class Player extends Character {
                 delete this.pressedKeys[event.key];
             }
             // player idle
-            this.state.idle = true;
+            this.isIdle = true;
             // dash action off
             if (this.isKeyActionDash(key)) {
                 this.canvas.style.filter = 'invert(0)';
