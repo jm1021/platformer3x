@@ -15,11 +15,12 @@ import GameControl from './GameControl.js';
 export class Player extends Character {
     // Default floor state
     floorState = {
-        base: 'floor',
+        id: 'floor',
         idle: true,
-        range: {bottom: GameEnv.bottom, top: GameEnv.top}, // 'player' requires change to range      
+        range: {bottom: GameEnv.bottom, top: GameEnv.top, left: GameEnv.left, right: GameEnv.right},      
         movement: {up: true, down: true, left: true, right: true},
-        object: null,
+        rect: null, // extents of the platform: left, right, top, bottom
+        other: null, // reference to the platform object
     };
 
     // instantiation: constructor sets up player object 
@@ -58,6 +59,15 @@ export class Player extends Character {
      * Each method checks a specific condition and returns a boolean indicating whether that condition is met.
      */
 
+    // helper: gravity check 
+    //isGravity() { return this.state.id === 'floor'; }
+    isGravity() { 
+        if (this.state.id === 'platform') {
+            return this.bottom > this.state.other.bottom;
+        } else {
+            return true;
+        }
+    }
     // helper: player facing left
     isFaceLeft() { return this.directionKey === "a"; }
     // helper: left action key is pressed
@@ -127,6 +137,16 @@ export class Player extends Character {
             this.setMinFrame(animation.idleFrame.frames);
         }
     }
+
+    platformUpdate() {
+        // Check if the player has moved off the edge of the platform
+        if (!this.state || // short circuit if no object
+            !this.isCollision(this.state.other)) {
+            // return to the floor state
+            this.state = {...this.floorState};
+        }
+    }
+    
    
     /**
      * gameloop: updates the player's state and position.
@@ -138,6 +158,11 @@ export class Player extends Character {
      */
 
     update() {
+
+        if (this.state.id === 'platform') {
+            this.platformUpdate();
+        }
+
         // GoombaBounce deals with player.js and goomba.js
         if (GameEnv.goombaBounce === true) {
             GameEnv.goombaBounce = false;
@@ -194,10 +219,43 @@ export class Player extends Character {
         //Update the Player Position Variables to match the position of the player
         GameEnv.PlayerPosition.playerX = this.x;
         GameEnv.PlayerPosition.playerY = this.y;
+        this.gravityEnabled = this.isGravity(); //gravity activation check 
 
     }
 
-    
+   /**
+     * gameloop: performs action on jump platform
+     * Handles idle, gravity, and movement flags.
+     * Handles the player's actions when a collision occurs with other game objects. 
+     */ 
+   platformAction() {
+        if (this.state.id === 'platform') {
+            const isJumpOnTop = this.collisionData.touchPoints.this.top;
+            const isHitOnLeftSide = this.collisionData.touchPoints.this.left;
+            const isHitOnRightSide = this.collisionData.touchPoints.this.right;
+            const isHitOnBottom = this.collisionData.touchPoints.this.bottom;
+
+            // respond to collision action
+            if (isJumpOnTop) { 
+                this.state.range = this.state.rect; // set left/right range of x extents
+            } else if (isHitOnLeftSide) { 
+                this.state.movement.right = false; // stop movement right
+                this.y -= GameEnv.gravity; // allows it to climb up side of platform 
+            } else if (isHitOnRightSide) { 
+                this.state.movement.left = false; // stop movement left
+                this.y -= GameEnv.gravity; // allows it to climb up side of platform
+            } else if (isHitOnBottom) { 
+                this.state = {...this.floorState};
+            }
+        // activate platform state
+        } else if (this.state.id === 'floor') {
+            this.state.id = 'platform';
+            this.state.rect = this.collisionData.other.rect;
+            this.state.other = this.collisionData.other.object;
+        }
+
+    }
+
     /**
      * gameloop: performs action on collisions
      * Handles the player's actions when a collision occurs.
@@ -207,29 +265,8 @@ export class Player extends Character {
      * @override
      */
     collisionAction() {
-
         if (this.collisionData.touchPoints.other.id === "jumpPlatform") {
-            if (this.collisionData.touchPoints.this.top) {
-                this.state.movement.down = false; // enable movement down without gravity
-                this.gravityEnabled = false;
-                this.setAnimation(this.directionKey); // set animation to direction
-            } else {
-                if (this.collisionData.touchPoints.other.left) {
-                    this.state.movement.right = false;
-                    this.gravityEnabled = true;
-                    this.y -= GameEnv.gravity; // allows movemnt on platform, but climbs walls
-                }
-                if (this.collisionData.touchPoints.other.right) {
-                    this.state.movement.left = false;
-                    this.gravityEnabled = true;
-                    this.y -= GameEnv.gravity; // allows movemnt on platform, but climbs walls
-                }
-            }
-        }
-        // Fall Off edge of Jump platform
-        else if (this.state.movement.down === false) {
-            this.state.movement.down = true;          
-            this.gravityEnabled = true;
+            this.platformAction();
         }
     }
 

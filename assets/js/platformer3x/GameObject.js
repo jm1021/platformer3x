@@ -130,13 +130,6 @@ class GameObject {
         // no action
     }
 
-    /* Default floor action is no action
-     * override when you extend for custom action
-    */
-    floorAction(){
-        // no action
-    }
-
     /* Collision checks
      * uses GameObject isCollision to detect hit
      * calls collisionAction on hit
@@ -144,12 +137,8 @@ class GameObject {
     collisionChecks() {
         for (var gameObj of GameEnv.gameObjects){
             if (this != gameObj ) {
-                this.isCollision(gameObj);
-                if (this.collisionData.hit){
+                if (this.isCollision(gameObj)) {
                     this.collisionAction();
-                }
-                if (this.collisionData.atFloor) {
-                    this.floorAction();
                 }
             }
         }
@@ -187,7 +176,7 @@ class GameObject {
     
         // Determine hit and touch points of hit
         this.collisionData = {
-            other: other,
+            other: {object: other, rect: otherRect},
             newX: thisRectLeftNew, // proportionally adjust left to center over other object
             hit: (
                 thisLeft < otherRect.right &&
@@ -213,6 +202,7 @@ class GameObject {
                 },
             },
         };
+        return this.collisionData.hit;
 
     }
     
