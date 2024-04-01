@@ -163,8 +163,11 @@ export class Player extends Character {
 
         // Player jumping
         if (this.isActiveGravityAnimation("w")) {
+
             GameEnv.playSound("PlayerJump");
             if (this.gravityEnabled) {
+                this.isIdle = true;
+
                 if (GameEnv.difficulty === "easy") {
                     this.y -= (this.bottom * .50);  // bottom jump height
                 } else if (GameEnv.difficulty === "normal") {
@@ -177,19 +180,8 @@ export class Player extends Character {
             }
         }
 
-        //Prevent Player from Dashing Through Tube
-        let tubeX = (.80 * GameEnv.innerWidth)
-        if (this.x >= tubeX && this.x <= GameEnv.innerWidth) {
-            this.x = tubeX - 1;
-
-            GameEnv.backgroundHillsSpeed = 0;
-            GameEnv.backgroundMountainsSpeed = 0;
-        }
-
         //Prevent Player from Leaving from Screen
         if (this.x < 0) {
-            this.x = 1;
-
             GameEnv.backgroundHillsSpeed = 0;
             GameEnv.backgroundMountainsSpeed = 0;
         }
@@ -205,22 +197,6 @@ export class Player extends Character {
     }
 
     /**
-     * gameloop:  responds to level change and game over destroy player object
-     * This method is used to remove the event listeners for keydown and keyup events.
-     * After removing the event listeners, it calls the parent class's destroy player object. 
-     * This method overrides GameObject.destroy.
-     * @override
-     */
-    destroy() {
-        // Remove event listeners
-        document.removeEventListener('keydown', this.keydownListener);
-        document.removeEventListener('keyup', this.keyupListener);
-
-        // Call the parent class's destroy method
-        super.destroy();
-    }
-
-    /**
      * gameloop: performs action on collisions
      * Handles the player's actions when a collision occurs.
      * This method checks the collision, type of game object, and then to determine action, e.g game over, animation, etc.
@@ -229,80 +205,13 @@ export class Player extends Character {
      * @override
      */
     collisionAction() {
-        // Tube collision check
-        if (this.collisionData.touchPoints.other.id === "tube" 
-            || this.collisionData.touchPoints.other.id === "tree") {
-
-            // Collision with the left side of the Tube
-            if (this.collisionData.touchPoints.other.left) {
-                this.movement.right = false;
-            }
-            // Collision with the right side of the Tube
-            if (this.collisionData.touchPoints.other.right) {
-                this.movement.left = false;
-            }
-            // Collision with the top of the player
-            if (this.collisionData.touchPoints.other.bottom) {
-                this.x = this.collisionData.newX;
-                this.gravityEnabled = false; // stop gravity
-                // Pause for two seconds
-                setTimeout(() => {   // animation in tube for 1 seconds
-                    this.gravityEnabled = true;
-                    setTimeout(() => { // move to end of screen for end of game detection
-                        this.x = GameEnv.innerWidth + 1;
-                    }, 1000);
-                }, 1000);
-            }
-        } else {
-            // Reset movement flags if not colliding with a tube
-            this.movement.left = true;
-            this.movement.right = true;
-        }
-
-        // Goomba collision check
-        // Checks if collision touchpoint id is either "goomba" or "flyingGoomba"
-        if (this.collisionData.touchPoints.other.id === "goomba" || this.collisionData.touchPoints.other.id === "flyingGoomba") {
-            if (GameEnv.invincible === false) {
-                GameEnv.goombaInvincible = true;
-                // Collision with the left side of the Enemy
-                if (this.collisionData.touchPoints.other.left && !this.collisionData.touchPoints.other.bottom && !this.collisionData.touchPoints.other.top && GameEnv.invincible === false && this.timer === false) {
-                    setTimeout(this.goombaCollision.bind(this), 50);
-                } else if (this.collisionData.touchPoints.other.right && !this.collisionData.touchPoints.other.bottom && !this.collisionData.touchPoints.other.top && GameEnv.invincible === false && this.timer === false) {
-                    setTimeout(this.goombaCollision.bind(this), 50);
-                }
-
-                // Collision with the right side of the Enemy
-            }
-        } 
-
-        if (this.collisionData.touchPoints.other.id === "mushroom") {
-            GameEnv.destroyedMushroom = true;
-            this.canvas.style.filter = 'invert(1)';
-        
-            setTimeout(() => {
-                this.canvas.style.filter = 'invert(0)';
-            }, 2000); // 2000 milliseconds = 2 seconds
-        }
 
         if (this.collisionData.touchPoints.other.id === "jumpPlatform") {
             if (this.collisionData.touchPoints.this.top) {
                 this.movement.down = false; // enable movement down without gravity
                 this.gravityEnabled = false;
                 this.setAnimation(this.directionKey); // set animation to direction
-            } else {
-                if (this.collisionData.touchPoints.other.left) {
-                    this.movement.right = false;
-                    this.gravityEnabled = true;
-                    this.y -= GameEnv.gravity; // allows movemnt on platform, but climbs walls
-                }
-                if (this.collisionData.touchPoints.other.right) {
-                    this.movement.left = false;
-                    this.gravityEnabled = true;
-                    this.y -= GameEnv.gravity; // allows movemnt on platform, but climbs walls
-                }
             }
-    
-            
         }
         // Fall Off edge of Jump platform
         else if (this.movement.down === false) {
@@ -389,6 +298,22 @@ export class Player extends Character {
                 GameEnv.backgroundMountainsSpeed = 0;
             }
         }
+    }
+
+    /**
+     * gameloop:  responds to level change and game over destroy player object
+     * This method is used to remove the event listeners for keydown and keyup events.
+     * After removing the event listeners, it calls the parent class's destroy player object. 
+     * This method overrides GameObject.destroy.
+     * @override
+     */
+    destroy() {
+        // Remove event listeners
+        document.removeEventListener('keydown', this.keydownListener);
+        document.removeEventListener('keyup', this.keyupListener);
+
+        // Call the parent class's destroy method
+        super.destroy();
     }
 }
 
