@@ -68,7 +68,6 @@ export class Player extends Character {
     isKeyActionRight(key) { return key === "d"; }
     // helper: dash key is pressed
     isKeyActionDash(key) { return key === "s"; }
-
     // helper: action key is in queue 
     isActiveAnimation(key) { return (key in this.pressedKeys) && !this.state.idle; }
     // helper: gravity action key is in queue
@@ -76,7 +75,7 @@ export class Player extends Character {
     isActiveGravityAnimation(key) {
         return this.isActiveAnimation(key) && this.isInAir();
     }
-
+    // helper: player is in air
     isInAir() {
         return this.bottom <= this.y || this.state.movement.down === false;
     }
@@ -124,52 +123,53 @@ export class Player extends Character {
      * This method overrides Character.update, which overrides GameObject.update. 
      * @override
      */
-
     update() {
-
-        // Player moving right 
-        if (this.isActiveAnimation("a")) {
-            if (this.state.movement.left) this.x -= this.isActiveAnimation("s") ? this.moveSpeed : this.speed;  // Move to left
-        }
-        // Player moving left
-        if (this.isActiveAnimation("d")) {
-            if (this.state.movement.right) this.x += this.isActiveAnimation("s") ? this.moveSpeed : this.speed;  // Move to right
-        }
-        // Player moving at dash speed left or right 
-        if (this.isActiveAnimation("s")) {}
-
-        // Player jumping
-        if (this.isActiveGravityAnimation("w")) {
-
-            GameEnv.playSound("PlayerJump");
-            if (this.gravityEnabled) {
-                if (GameEnv.difficulty === "easy") {
-                    this.y -= (this.bottom * .50);  // bottom jump height
-                } else if (GameEnv.difficulty === "normal") {
-                    this.y -= (this.bottom * .40);
-                } else {
-                    this.y -= (this.bottom * .30);
-                }
-            } else if (this.state.movement.down === false) {
-                this.y -= (this.bottom * .15);  // platform jump height
-            }
-        }
-
-        //Stop background movement
-        if (this.x < 0) {
-            GameEnv.backgroundHillsSpeed = 0;
-            GameEnv.backgroundMountainsSpeed = 0;
-        }
-
-        //Update the Player Position Variables to match the position of the player
-        GameEnv.PlayerPosition.playerX = this.x;
-        GameEnv.PlayerPosition.playerY = this.y;
+        this.updateHorizontalMovement();
+        this.updateJumpMovement();
+        this.updateBackgroundMovement();
 
         // Perform super update actions
         super.update();
 
-        // On platform wiggle remover   
+        // reset animatiion: for instance remove platform wiggle when idle   
         this.updateAnimation();
+    }
+    
+    updateHorizontalMovement() {
+        if (this.isActiveAnimation("a") && this.state.movement.left) {
+            this.x -= this.isActiveAnimation("s") ? this.moveSpeed : this.speed;  // Move to left
+        }
+        if (this.isActiveAnimation("d") && this.state.movement.right) {
+            this.x += this.isActiveAnimation("s") ? this.moveSpeed : this.speed;  // Move to right
+        }
+        // Player moving at dash speed left or right 
+        if (this.isActiveAnimation("s")) {}
+    }
+    
+    updateJumpMovement() {
+        if (this.isActiveGravityAnimation("w")) {
+            GameEnv.playSound("PlayerJump");
+            let jumpHeightFactor;
+            if (this.gravityEnabled) {
+                if (GameEnv.difficulty === "easy") {
+                    jumpHeightFactor = 0.50;
+                } else if (GameEnv.difficulty === "normal") {
+                    jumpHeightFactor = 0.40;
+                } else {
+                    jumpHeightFactor = 0.30;
+                }
+            } else if (this.state.movement.down === false) {
+                jumpHeightFactor = 0.15;  // platform jump height
+            }
+            this.y -= (this.bottom * jumpHeightFactor);
+        }
+    }
+    
+    updateBackgroundMovement() {
+        if (this.x < 0) {
+            GameEnv.backgroundHillsSpeed = 0;
+            GameEnv.backgroundMountainsSpeed = 0;
+        }
     }
 
     /**
