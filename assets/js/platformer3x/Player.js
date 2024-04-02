@@ -190,7 +190,7 @@ export class Player extends Character {
     handleCollisionStart() {
         switch (this.collisionData.touchPoints.other.id) {
             case "jumpPlatform":
-                if (this.collisionData.touchPoints.this.top && !this.state.collisions.includes("jumpPlatform")) {
+                if (!this.state.collisions.includes("jumpPlatform")) {
                     this.state.collisions.push("jumpPlatform");
                 }
                 break;
@@ -207,7 +207,7 @@ export class Player extends Character {
         // remove each collision when player is no longer touching the object
         if (this.state.id === "floor") {
             // noop
-        } if (this.state.collisions.includes(this.state.id) && this.collisionData.touchPoints.other.id !== this.state.id ) {
+        } else if (this.state.collisions.includes(this.state.id) && this.collisionData.touchPoints.other.id !== this.state.id ) {
             this.state.collisions = this.state.collisions.filter(id => id !== this.state.id );
         }
         // Add similar code for "wall" and other obstacles
@@ -228,8 +228,10 @@ export class Player extends Character {
 
         switch (this.state.id) {
             case "jumpPlatform":
-                this.state.movement.down = false;
-                this.gravityEnabled = false;
+                if (this.collisionData.touchPoints.this.top) {
+                    this.state.movement.down = false;
+                    this.gravityEnabled = false;
+                }
                 break;
             case "wall":
                 if (this.collisionData.touchPoints.this.top && this.collisionData.touchPoints.other.bottom) {
