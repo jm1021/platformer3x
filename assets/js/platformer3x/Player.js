@@ -14,10 +14,11 @@ import GameControl from './GameControl.js';
  */
 export class Player extends Character {
     // Default floor state
-    floorState = {
+    initState = {
         id: 'floor',
         idle: true,
         movement: {up: true, down: true, left: true, right: true},
+        collisions: []  
     };
 
     // instantiation: constructor sets up player object 
@@ -29,7 +30,7 @@ export class Player extends Character {
         this.playerData = data; // GameSetup data
         this.name = GameEnv.userID; // name of the player
         this.shouldBeSynced = true; // multi-player sync
-        this.state = {...this.floorState}; // start with player on the floor 
+        this.state = {...this.initState}; // start with player on the floor 
 
         // ??  needed to start the game
         this.isDying = false;
@@ -174,21 +175,70 @@ export class Player extends Character {
      * @override
      */
     collisionAction() {
-
-        // A collision with jump platform
-        if (this.collisionData.touchPoints.other.id === "jumpPlatform") {
-            if (this.collisionData.touchPoints.this.top) {
-                this.state.id = "jumpPlatform";
+        this.handleCollisionStart();
+        this.handleCollisionEnd();
+        this.updatePlayerState();
+        this.updatePlayerMovementAndGravity();
+    }
+    
+    handleCollisionStart() {
+        switch (this.collisionData.touchPoints.other.id) {
+            case "jumpPlatform":
+                if (this.collisionData.touchPoints.this.top && !this.state.collisions.includes("jumpPlatform")) {
+                    this.state.collisions.push("jumpPlatform");
+                }
+                break;
+            case "wall":
+                if (!this.state.collisions.includes("wall")) {
+                    this.state.collisions.push("wall");
+                }
+                break;
+            // Add more cases as needed
+        }
+    }
+    
+    handleCollisionEnd() {
+        // remove each collision when player is no longer touching the object
+        if (this.state.id === "floor") {
+            // noop
+        } if (this.state.collisions.includes(this.state.id) && this.collisionData.touchPoints.other.id !== this.state.id ) {
+            this.state.collisions = this.state.collisions.filter(id => id !== this.state.id );
+        }
+        // Add similar code for "wall" and other obstacles
+    }
+    
+    updatePlayerState() {
+        // set player collision id based on last collision  
+        if (this.state.collisions.length > 0) {
+            this.state.id = this.state.collisions[this.state.collisions.length - 1];
+        } else {
+            this.state.id = "floor";
+        }
+    }
+    
+    updatePlayerMovementAndGravity() {
+        switch (this.state.id) {
+            case "jumpPlatform":
                 this.state.movement.down = false;
                 this.gravityEnabled = false;
-                this.setAnimation(this.directionKey); // set animation to direction
-            }
-        }
-        // The jump platform is has ended
-        else if (this.state.id === "jumpPlatform") { 
-            this.state.id = "floor";
-            this.state.movement.down = true;          
-            this.gravityEnabled = true;
+                break;
+            case "wall":
+                if (this.collisionData.touchPoints.this.top) {
+                    this.state.movement.down = false;
+                    this.gravityEnabled = false;
+                } else if (this.collisionData.touchPoints.this.right) {
+                    this.state.movement.right = false;
+                    this.state.movement.left = true;
+                } else if (this.collisionData.touchPoints.this.left) {
+                    this.state.movement.left = false;
+                    this.state.movement.right = true;
+                }
+                break;
+            default:
+                this.state.movement.left = true;
+                this.state.movement.right = true;
+                this.state.movement.down = true;
+                this.gravityEnabled = true;
         }
     }
 
