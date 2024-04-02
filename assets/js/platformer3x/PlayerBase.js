@@ -12,26 +12,40 @@ import GameControl from './GameControl.js';
  * 
  * @extends Character
  */
-export class PlayerBase extends Character {
-    // Default floor state
-    floorState = {
-        id: 'floor',
+export class Player extends Character {
+    /**
+     * Initial environment of the player.
+     * @property {string} id - The current surface the player is on (e.g., 'floor', 'wall', 'platform').
+     * @property {boolean} idle - Whether the player is idle.
+     * @property {Object} movement - The directions in which the player can move.
+     * @property {boolean} movement.up - Whether the player can move up.
+     * @property {boolean} movement.down - Whether the player can move down.
+     * @property {boolean} movement.left - Whether the player can move left.
+     * @property {boolean} movement.right - Whether the player can move right.
+     * @property {Array} collisions - The collisions that the player has had.
+     */
+    initEnvironmentState = {
+        id: 'floor', // floor, wall, platform, ... 
         idle: true,
-        range: {bottom: GameEnv.bottom, top: GameEnv.top, left: GameEnv.left, right: GameEnv.right},      
         movement: {up: true, down: true, left: true, right: true},
-        rect: null, // extents of the platform: left, right, top, bottom
-        other: null, // reference to the platform object
+        collisions: []  
     };
 
-    // instantiation: constructor sets up player object 
+    /** GameObject instantiation: constructor for Player object
+     *  * @extends Character 
+     * @param {HTMLCanvasElement} canvas - The canvas element to draw the player on.
+     * @param {HTMLImageElement} image - The image to draw the player with.
+     * @param {Object} data - The data object containing the player's properties.
+     */
     constructor(canvas, image, data) {
         super(canvas, image, data);
+
         // Player Data
         GameEnv.player = this; // Global player object
         this.playerData = data; // GameSetup data
         this.name = GameEnv.userID; // name of the player
         this.shouldBeSynced = true; // multi-player sync
-        this.state = {...this.floorState}; // start with player on the floor 
+        this.state = {...this.initEnvironmentState}; // start with player on the floor 
 
         // ??  needed to start the game
         this.isDying = false;
@@ -55,19 +69,26 @@ export class PlayerBase extends Character {
     }
 
     /**
+     * GameObject: responds to level change and game over destroy for the player object
+     * This method is used to remove the event listeners for keydown and keyup events.
+     * After removing the event listeners, it calls the parent class's destroy player object. 
+     * This method overrides standard GameObject.destroy.
+     * @override
+     */
+    destroy() {
+        // Remove event listeners
+        document.removeEventListener('keydown', this.keydownListener);
+        document.removeEventListener('keyup', this.keyupListener);
+
+        // Call the parent class's destroy method
+        super.destroy();
+    }
+
+    /**
      * Helper methods for checking the state of the player.
      * Each method checks a specific condition and returns a boolean indicating whether that condition is met.
      */
 
-    // helper: gravity check 
-    //isGravity() { return this.state.id === 'floor'; }
-    isGravity() { 
-        if (this.state.id === 'platform') {
-            return this.bottom > this.state.other.bottom;
-        } else {
-            return true;
-        }
-    }
     // helper: player facing left
     isFaceLeft() { return this.directionKey === "a"; }
     // helper: left action key is pressed
@@ -78,35 +99,22 @@ export class PlayerBase extends Character {
     isKeyActionRight(key) { return key === "d"; }
     // helper: dash key is pressed
     isKeyActionDash(key) { return key === "s"; }
-
     // helper: action key is in queue 
     isActiveAnimation(key) { return (key in this.pressedKeys) && !this.state.idle; }
     // helper: gravity action key is in queue
+    // helper: gravity action key is in queue
     isActiveGravityAnimation(key) {
-        var result = this.isActiveAnimation(key) && (this.bottom <= this.y || this.state.movement.down === false);
-    
-        // return to directional animation (direction?)
-        if (this.bottom <= this.y || this.state.movement.down === false) {
-            this.setAnimation(this.directionKey);
-        }
-    
-        return result;
+        return this.isActiveAnimation(key) && this.isInAir();
+    }
+    // helper: player is in air
+    isInAir() {
+        return this.bottom <= this.y || this.state.movement.down === false;
     }
 
-    /**
-     * gameloop:  responds to level change and game over destroy player object
-     * This method is used to remove the event listeners for keydown and keyup events.
-     * After removing the event listeners, it calls the parent class's destroy player object. 
-     * This method overrides GameObject.destroy.
-     * @override
-     */
-    destroy() {
-        // Remove event listeners
-        document.removeEventListener('keydown', this.keydownListener);
-        document.removeEventListener('keyup', this.keyupListener);
-
-        // Call the parent class's destroy method
-        super.destroy();
+    updateAnimation() {
+        if (this.isInAir()) {
+            this.setAnimation(this.directionKey);
+        }
     }
 
     /**
@@ -137,16 +145,6 @@ export class PlayerBase extends Character {
             this.setMinFrame(animation.idleFrame.frames);
         }
     }
-
-    platformUpdate() {
-        // Check if the player has moved off the edge of the platform
-        if (!this.state || // short circuit if no object
-            !this.isCollision(this.state.other)) {
-            // return to the floor state
-            this.state = {...this.floorState};
-        }
-    }
-    
    
     /**
      * gameloop: updates the player's state and position.
@@ -156,105 +154,47 @@ export class PlayerBase extends Character {
      * This method overrides Character.update, which overrides GameObject.update. 
      * @override
      */
-
     update() {
-
-        if (this.state.id === 'platform') {
-            this.platformUpdate();
-        }
-
-        // GoombaBounce deals with player.js and goomba.js
-        if (GameEnv.goombaBounce === true) {
-            GameEnv.goombaBounce = false;
-            this.y = this.y - 100;
-        }
-
-        if (GameEnv.goombaBounce1 === true) {
-            GameEnv.goombaBounce1 = false; 
-            this.y = this.y - 250
-        } 
-
-        // Player moving right 
-        if (this.isActiveAnimation("a")) {
-            if (this.state.movement.left) this.x -= this.isActiveAnimation("s") ? this.moveSpeed : this.speed;  // Move to left
-        }
-        // Player moving left
-        if (this.isActiveAnimation("d")) {
-            if (this.state.movement.right) this.x += this.isActiveAnimation("s") ? this.moveSpeed : this.speed;  // Move to right
-        }
-        // Player moving at dash speed left or right 
-        if (this.isActiveAnimation("s")) {}
-
-        // Player jumping
-        if (this.isActiveGravityAnimation("w")) {
-            GameEnv.playSound("PlayerJump");
-            if (this.gravityEnabled) {
-                if (GameEnv.difficulty === "easy") {
-                    this.y -= (this.bottom * .50);  // bottom jump height
-                } else if (GameEnv.difficulty === "normal") {
-                    this.y -= (this.bottom * .40);
-                } else {
-                    this.y -= (this.bottom * .30);
-                }
-            } else if (this.state.movement.down === false) {
-                this.y -= (this.bottom * .15);  // platform jump height
-            }
-        }
-
-        //Stop background scrolling when player reaches left of screen
-        if (this.x < 0) {
-            GameEnv.backgroundHillsSpeed = 0;
-            GameEnv.backgroundMountainsSpeed = 0;
-        }
+        this.updateHorizontalMovement();
+        this.updateJumpMovement();
 
         // Perform super update actions
         super.update();
 
-        // To put mario in the air after stepping on the goomba
-        if (GameEnv.goombaBoost === true) {
-            GameEnv.goombaBoost = false;
-            this.y = this.y - 150;
-        }
-
-        //Update the Player Position Variables to match the position of the player
-        GameEnv.PlayerPosition.playerX = this.x;
-        GameEnv.PlayerPosition.playerY = this.y;
-        this.gravityEnabled = this.isGravity(); //gravity activation check 
-
+        // reset animatiion: for instance remove platform wiggle when idle   
+        this.updateAnimation();
     }
-
-   /**
-     * gameloop: performs action on jump platform
-     * Handles idle, gravity, and movement flags.
-     * Handles the player's actions when a collision occurs with other game objects. 
-     */ 
-   platformAction() {
-        if (this.state.id === 'platform') {
-            const isJumpOnTop = this.collisionData.touchPoints.this.top;
-            const isHitOnLeftSide = this.collisionData.touchPoints.this.left;
-            const isHitOnRightSide = this.collisionData.touchPoints.this.right;
-            const isHitOnBottom = this.collisionData.touchPoints.this.bottom;
-
-            // respond to collision action
-            if (isJumpOnTop) { 
-                this.state.range = this.state.rect; // set left/right range of x extents
-            } else if (isHitOnLeftSide) { 
-                this.state.movement.right = false; // stop movement right
-                this.y -= GameEnv.gravity; // allows it to climb up side of platform 
-            } else if (isHitOnRightSide) { 
-                this.state.movement.left = false; // stop movement left
-                this.y -= GameEnv.gravity; // allows it to climb up side of platform
-            } else if (isHitOnBottom) { 
-                this.state = {...this.floorState};
+    
+    updateHorizontalMovement() {
+        if (this.isActiveAnimation("a") && this.state.movement.left) {
+            this.x -= this.isActiveAnimation("s") ? this.moveSpeed : this.speed;  // Move to left
+        }
+        if (this.isActiveAnimation("d") && this.state.movement.right) {
+            this.x += this.isActiveAnimation("s") ? this.moveSpeed : this.speed;  // Move to right
+        }
+        // Player moving at dash speed left or right 
+        if (this.isActiveAnimation("s")) {}
+    }
+    
+    updateJumpMovement() {
+        if (this.isActiveGravityAnimation("w")) {
+            GameEnv.playSound("PlayerJump");
+            let jumpHeightFactor;
+            if (this.gravityEnabled) {
+                if (GameEnv.difficulty === "easy") {
+                    jumpHeightFactor = 0.50;
+                } else if (GameEnv.difficulty === "normal") {
+                    jumpHeightFactor = 0.40;
+                } else {
+                    jumpHeightFactor = 0.30;
+                }
+            } else if (this.state.movement.down === false) {
+                jumpHeightFactor = 0.15;  // platform jump height
             }
-        // activate platform state
-        } else if (this.state.id === 'floor') {
-            this.state.id = 'platform';
-            this.state.rect = this.collisionData.other.rect;
-            this.state.other = this.collisionData.other.object;
+            this.y -= (this.bottom * jumpHeightFactor);
         }
-
     }
+    
 
     /**
      * gameloop: performs action on collisions
@@ -265,8 +205,70 @@ export class PlayerBase extends Character {
      * @override
      */
     collisionAction() {
-        if (this.collisionData.touchPoints.other.id === "jumpPlatform") {
-            this.platformAction();
+        this.handleCollisionStart();
+        this.handleCollisionEnd();
+        this.updatePlayerState();
+        this.updatePlayerMovementAndGravity();
+    }
+    
+    handleCollisionStart() {
+        switch (this.collisionData.touchPoints.other.id) {
+            case "jumpPlatform":
+                if (!this.state.collisions.includes("jumpPlatform")) {
+                    this.state.collisions.push("jumpPlatform");
+                }
+                break;
+            case "wall":
+                if (!this.state.collisions.includes("wall")) {
+                    this.state.collisions.push("wall");
+                }
+                break;
+            // Add more cases as needed
+        }
+    }
+    
+    handleCollisionEnd() {
+        // remove each collision when player is no longer touching the object
+        if (this.state.id === "floor") {
+            // noop
+        } else if (this.state.collisions.includes(this.state.id) && this.collisionData.touchPoints.other.id !== this.state.id ) {
+            this.state.collisions = this.state.collisions.filter(id => id !== this.state.id );
+        }
+        // Add similar code for "wall" and other obstacles
+    }
+    
+    updatePlayerState() {
+        // set player collision id based on last collision  
+        if (this.state.collisions.length > 0) {
+            this.state.id = this.state.collisions[this.state.collisions.length - 1];
+        } else {
+            this.state.id = "floor";
+        }
+    }
+    
+    updatePlayerMovementAndGravity() {
+        this.state.movement = { up: true, left: true, right: true, down: true };
+        this.gravityEnabled = true;
+
+        switch (this.state.id) {
+            case "jumpPlatform":
+                if (this.collisionData.touchPoints.this.top) {
+                    this.state.movement.down = false;
+                    this.gravityEnabled = false;
+                }
+                break;
+            case "wall":
+                if (this.collisionData.touchPoints.this.top && this.collisionData.touchPoints.other.bottom) {
+                    this.state.movement.down = false;
+                    this.gravityEnabled = false;
+                } else if (this.collisionData.touchPoints.this.right) {
+                    this.state.movement.right = false;
+                    this.state.movement.left = true;
+                } else if (this.collisionData.touchPoints.this.left) {
+                    this.state.movement.left = false;
+                    this.state.movement.right = true;
+                }
+                break;
         }
     }
 
@@ -306,20 +308,7 @@ export class PlayerBase extends Character {
                 this.canvas.style.filter = 'invert(1)';
             }
             // parallax background speed starts on player movement
-            if (this.isKeyActionLeft(key) && this.x > 2) {
-                GameEnv.backgroundHillsSpeed = -0.4;
-                GameEnv.backgroundMountainsSpeed = -0.1;
-            } else if (this.isKeyActionRight(key)) {
-                GameEnv.backgroundHillsSpeed = 0.4;
-                GameEnv.backgroundMountainsSpeed = 0.1;
-            } 
-            /* else if (this.isKeyActionDash(key) && this.directionKey === "a") {
-                 GameEnv.backgroundHillsSpeed = -0.4;
-                 GameEnv.backgroundMountainsSpeed = -0.1;
-             } else if (this.isKeyActionDash(key) && this.directionKey === "d") {
-                 GameEnv.backgroundHillsSpeed = 0.4;
-                 GameEnv.backgroundMountainsSpeed = 0.1;
-            } */ // This was unnecessary, and broke hitboxes / alloswed diffusion through matter
+            GameEnv.updateParallaxBackgrounds(key)
         }
     }
 
@@ -343,12 +332,10 @@ export class PlayerBase extends Character {
                 GameEnv.dash = false;
             } 
             // parallax background speed halts on key up
-            if (this.isKeyActionLeft(key) || this.isKeyActionRight(key) || this.isKeyActionDash(key)) {
-                GameEnv.backgroundHillsSpeed = 0;
-                GameEnv.backgroundMountainsSpeed = 0;
-            }
+            GameEnv.updateParallaxBackgrounds(null)
         }
     }
+
 }
 
 export default Player;
