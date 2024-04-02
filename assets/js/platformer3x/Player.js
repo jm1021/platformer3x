@@ -13,15 +13,30 @@ import GameControl from './GameControl.js';
  * @extends Character
  */
 export class Player extends Character {
-    // Default floor state
-    initState = {
-        id: 'floor',
+    /**
+     * Initial environment of the player.
+     * @property {string} id - The current surface the player is on (e.g., 'floor', 'wall', 'platform').
+     * @property {boolean} idle - Whether the player is idle.
+     * @property {Object} movement - The directions in which the player can move.
+     * @property {boolean} movement.up - Whether the player can move up.
+     * @property {boolean} movement.down - Whether the player can move down.
+     * @property {boolean} movement.left - Whether the player can move left.
+     * @property {boolean} movement.right - Whether the player can move right.
+     * @property {Array} collisions - The collisions that the player has had.
+     */
+    initEnvironmentState = {
+        id: 'floor', // floor, wall, platform, ... 
         idle: true,
         movement: {up: true, down: true, left: true, right: true},
         collisions: []  
     };
 
-    // instantiation: constructor sets up player object 
+    /** GameObject instantiation: constructor for Player object
+     *  * @extends Character 
+     * @param {HTMLCanvasElement} canvas - The canvas element to draw the player on.
+     * @param {HTMLImageElement} image - The image to draw the player with.
+     * @param {Object} data - The data object containing the player's properties.
+     */
     constructor(canvas, image, data) {
         super(canvas, image, data);
 
@@ -30,7 +45,7 @@ export class Player extends Character {
         this.playerData = data; // GameSetup data
         this.name = GameEnv.userID; // name of the player
         this.shouldBeSynced = true; // multi-player sync
-        this.state = {...this.initState}; // start with player on the floor 
+        this.state = {...this.initEnvironmentState}; // start with player on the floor 
 
         // ??  needed to start the game
         this.isDying = false;
@@ -51,6 +66,22 @@ export class Player extends Character {
         // Add event listeners
         document.addEventListener('keydown', this.keydownListener);
         document.addEventListener('keyup', this.keyupListener);
+    }
+
+    /**
+     * GameObject: responds to level change and game over destroy for the player object
+     * This method is used to remove the event listeners for keydown and keyup events.
+     * After removing the event listeners, it calls the parent class's destroy player object. 
+     * This method overrides standard GameObject.destroy.
+     * @override
+     */
+    destroy() {
+        // Remove event listeners
+        document.removeEventListener('keydown', this.keydownListener);
+        document.removeEventListener('keyup', this.keyupListener);
+
+        // Call the parent class's destroy method
+        super.destroy();
     }
 
     /**
@@ -322,21 +353,6 @@ export class Player extends Character {
         }
     }
 
-    /**
-     * gameloop:  responds to level change and game over destroy player object
-     * This method is used to remove the event listeners for keydown and keyup events.
-     * After removing the event listeners, it calls the parent class's destroy player object. 
-     * This method overrides GameObject.destroy.
-     * @override
-     */
-    destroy() {
-        // Remove event listeners
-        document.removeEventListener('keydown', this.keydownListener);
-        document.removeEventListener('keyup', this.keyupListener);
-
-        // Call the parent class's destroy method
-        super.destroy();
-    }
 }
 
 export default Player;
