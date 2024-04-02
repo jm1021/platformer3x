@@ -13,18 +13,34 @@ import GameControl from './GameControl.js';
  * @extends Character
  */
 export class Player extends Character {
+    // Default floor state
+    floorState = {
+        id: 'floor',
+        idle: true,
+        movement: {up: true, down: true, left: true, right: true},
+    };
+
     // instantiation: constructor sets up player object 
     constructor(canvas, image, data) {
         super(canvas, image, data);
-        // Player Data is required for Animations
-        this.playerData = data;
-        GameEnv.invincible = false; 
 
+        // Player Data
+        GameEnv.player = this; // Global player object
+        this.playerData = data; // GameSetup data
+        this.name = GameEnv.userID; // name of the player
+        this.shouldBeSynced = true; // multi-player sync
+        this.state = {...this.floorState}; // start with player on the floor 
+
+        // ??  needed to start the game
+        this.isDying = false;
+        this.isDyingR = false;
+        this.timer = false;
+        GameEnv.invincible = false; 
+        this.transitionHide = false;
+        
         // Player control data
         this.moveSpeed = this.speed * 3;
         this.pressedKeys = {};
-        this.movement = {up: true, down: true, left: true, right: true};
-        this.isIdle = true;
         this.directionKey = "d"; // initially facing right
 
         // Store a reference to the event listener function
@@ -34,15 +50,6 @@ export class Player extends Character {
         // Add event listeners
         document.addEventListener('keydown', this.keydownListener);
         document.addEventListener('keyup', this.keyupListener);
-
-        GameEnv.player = this;
-        this.transitionHide = false;
-        this.shouldBeSynced = true;
-        this.isDying = false;
-        this.isDyingR = false;
-        this.timer = false;
-
-        this.name = GameEnv.userID;
     }
 
     /**
@@ -62,13 +69,13 @@ export class Player extends Character {
     isKeyActionDash(key) { return key === "s"; }
 
     // helper: action key is in queue 
-    isActiveAnimation(key) { return (key in this.pressedKeys) && !this.isIdle; }
+    isActiveAnimation(key) { return (key in this.pressedKeys) && !this.state.idle; }
     // helper: gravity action key is in queue
     isActiveGravityAnimation(key) {
-        var result = this.isActiveAnimation(key) && (this.bottom <= this.y || this.movement.down === false);
+        var result = this.isActiveAnimation(key) && (this.bottom <= this.y || this.state.movement.down === false);
     
         // return to directional animation (direction?)
-        if (this.bottom <= this.y || this.movement.down === false) {
+        if (this.bottom <= this.y || this.state.movement.down === false) {
             this.setAnimation(this.directionKey);
         }
     
@@ -119,7 +126,7 @@ export class Player extends Character {
         this.setFrameY(animation.row);
         this.setMinFrame(animation.min ? animation.min : 0);
         this.setMaxFrame(animation.frames);
-        if (this.isIdle && animation.idleFrame) {
+        if (this.state.idle && animation.idleFrame) {
             this.setFrameX(animation.idleFrame.column)
             this.setMinFrame(animation.idleFrame.frames);
         }
@@ -135,10 +142,7 @@ export class Player extends Character {
      */
 
     update() {
-        //Update the Player Position Variables to match the position of the player
-        GameEnv.PlayerPosition.playerX = this.x;
-        GameEnv.PlayerPosition.playerY = this.y;
-
+        
         // GoombaBounce deals with player.js and goomba.js
         if (GameEnv.goombaBounce === true) {
             GameEnv.goombaBounce = false;
@@ -152,11 +156,11 @@ export class Player extends Character {
 
         // Player moving right 
         if (this.isActiveAnimation("a")) {
-            if (this.movement.left) this.x -= this.isActiveAnimation("s") ? this.moveSpeed : this.speed;  // Move to left
+            if (this.state.movement.left) this.x -= this.isActiveAnimation("s") ? this.moveSpeed : this.speed;  // Move to left
         }
         // Player moving left
         if (this.isActiveAnimation("d")) {
-            if (this.movement.right) this.x += this.isActiveAnimation("s") ? this.moveSpeed : this.speed;  // Move to right
+            if (this.state.movement.right) this.x += this.isActiveAnimation("s") ? this.moveSpeed : this.speed;  // Move to right
         }
         // Player moving at dash speed left or right 
         if (this.isActiveAnimation("s")) {}
@@ -166,8 +170,6 @@ export class Player extends Character {
 
             GameEnv.playSound("PlayerJump");
             if (this.gravityEnabled) {
-                this.isIdle = true;
-
                 if (GameEnv.difficulty === "easy") {
                     this.y -= (this.bottom * .50);  // bottom jump height
                 } else if (GameEnv.difficulty === "normal") {
@@ -175,7 +177,7 @@ export class Player extends Character {
                 } else {
                     this.y -= (this.bottom * .30);
                 }
-            } else if (this.movement.down === false) {
+            } else if (this.state.movement.down === false) {
                 this.y -= (this.bottom * .15);  // platform jump height
             }
         }
@@ -186,14 +188,13 @@ export class Player extends Character {
             GameEnv.backgroundMountainsSpeed = 0;
         }
 
+        //Update the Player Position Variables to match the position of the player
+        GameEnv.PlayerPosition.playerX = this.x;
+        GameEnv.PlayerPosition.playerY = this.y;
+
         // Perform super update actions
         super.update();
 
-        // To put mario in the air after stepping on the goomba
-        if (GameEnv.goombaBoost === true) {
-            GameEnv.goombaBoost = false;
-            this.y = this.y - 150;
-        }
     }
 
     /**
@@ -206,16 +207,19 @@ export class Player extends Character {
      */
     collisionAction() {
 
+        // A collision with jump platform
         if (this.collisionData.touchPoints.other.id === "jumpPlatform") {
             if (this.collisionData.touchPoints.this.top) {
-                this.movement.down = false; // enable movement down without gravity
+                this.state.id = "jumpPlatform";
+                this.state.movement.down = false;
                 this.gravityEnabled = false;
                 this.setAnimation(this.directionKey); // set animation to direction
             }
         }
-        // Fall Off edge of Jump platform
-        else if (this.movement.down === false) {
-            this.movement.down = true;          
+        // The jump platform is has ended
+        else if (this.state.id === "jumpPlatform") { 
+            this.state.id = "floor";
+            this.state.movement.down = true;          
             this.gravityEnabled = true;
         }
     }
@@ -246,7 +250,7 @@ export class Player extends Character {
                 this.pressedKeys[event.key] = this.playerData[key];
                 this.setAnimation(key);
                 // player active
-                this.isIdle = false;
+                this.state.idle = false;
                 GameEnv.transitionHide = true;
             }
 
@@ -263,13 +267,7 @@ export class Player extends Character {
                 GameEnv.backgroundHillsSpeed = 0.4;
                 GameEnv.backgroundMountainsSpeed = 0.1;
             } 
-            /* else if (this.isKeyActionDash(key) && this.directionKey === "a") {
-                 GameEnv.backgroundHillsSpeed = -0.4;
-                 GameEnv.backgroundMountainsSpeed = -0.1;
-             } else if (this.isKeyActionDash(key) && this.directionKey === "d") {
-                 GameEnv.backgroundHillsSpeed = 0.4;
-                 GameEnv.backgroundMountainsSpeed = 0.1;
-            } */ // This was unnecessary, and broke hitboxes / alloswed diffusion through matter
+            
         }
     }
 
@@ -286,7 +284,7 @@ export class Player extends Character {
                 delete this.pressedKeys[event.key];
             }
             // player idle
-            this.isIdle = true;
+            this.state.idle = true;
             // dash action off
             if (this.isKeyActionDash(key)) {
                 this.canvas.style.filter = 'invert(0)';
