@@ -72,15 +72,19 @@ export class Player extends Character {
     // helper: action key is in queue 
     isActiveAnimation(key) { return (key in this.pressedKeys) && !this.state.idle; }
     // helper: gravity action key is in queue
+    // helper: gravity action key is in queue
     isActiveGravityAnimation(key) {
-        var result = this.isActiveAnimation(key) && (this.bottom <= this.y || this.state.movement.down === false);
-    
-        // return to directional animation (direction?)
-        if (this.bottom <= this.y || this.state.movement.down === false) {
+        return this.isActiveAnimation(key) && this.isInAir();
+    }
+
+    isInAir() {
+        return this.bottom <= this.y || this.state.movement.down === false;
+    }
+
+    updateAnimation() {
+        if (this.isInAir()) {
             this.setAnimation(this.directionKey);
         }
-    
-        return result;
     }
 
     /**
@@ -164,6 +168,8 @@ export class Player extends Character {
         // Perform super update actions
         super.update();
 
+        // On platform wiggle remover   
+        this.updateAnimation();
     }
 
     /**
@@ -223,7 +229,7 @@ export class Player extends Character {
                 this.gravityEnabled = false;
                 break;
             case "wall":
-                if (this.collisionData.touchPoints.this.top) {
+                if (this.collisionData.touchPoints.this.top && this.collisionData.touchPoints.other.bottom) {
                     this.state.movement.down = false;
                     this.gravityEnabled = false;
                 } else if (this.collisionData.touchPoints.this.right) {
