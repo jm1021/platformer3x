@@ -157,7 +157,6 @@ export class Player extends Character {
     update() {
         this.updateHorizontalMovement();
         this.updateJumpMovement();
-        this.updateBackgroundMovement();
 
         // Perform super update actions
         super.update();
@@ -196,12 +195,6 @@ export class Player extends Character {
         }
     }
     
-    updateBackgroundMovement() {
-        if (this.x < 0) {
-            GameEnv.backgroundHillsSpeed = 0;
-            GameEnv.backgroundMountainsSpeed = 0;
-        }
-    }
 
     /**
      * gameloop: performs action on collisions
@@ -315,14 +308,7 @@ export class Player extends Character {
                 this.canvas.style.filter = 'invert(1)';
             }
             // parallax background speed starts on player movement
-            if (this.isKeyActionLeft(key) && this.x > 2) {
-                GameEnv.backgroundHillsSpeed = -0.4;
-                GameEnv.backgroundMountainsSpeed = -0.1;
-            } else if (this.isKeyActionRight(key)) {
-                GameEnv.backgroundHillsSpeed = 0.4;
-                GameEnv.backgroundMountainsSpeed = 0.1;
-            } 
-            
+            GameEnv.updateParallaxBackgrounds(key)
         }
     }
 
@@ -346,10 +332,7 @@ export class Player extends Character {
                 GameEnv.dash = false;
             } 
             // parallax background speed halts on key up
-            if (this.isKeyActionLeft(key) || this.isKeyActionRight(key) || this.isKeyActionDash(key)) {
-                GameEnv.backgroundHillsSpeed = 0;
-                GameEnv.backgroundMountainsSpeed = 0;
-            }
+            GameEnv.updateParallaxBackgrounds(null)
         }
     }
 
