@@ -43,16 +43,17 @@ export class Player extends Character {
         // Player Data
         GameEnv.player = this; // Global player object
         this.playerData = data; // GameSetup data
-        this.name = GameEnv.userID; // name of the player
-        this.shouldBeSynced = true; // multi-player sync
         this.state = {...this.initEnvironmentState}; // start with player on the floor 
 
-        // ??  needed to start the game
+        // System 
+        this.name = GameEnv.userID; // name of the player
+        this.shouldBeSynced = true; // multi-player sync
+        //???
+        this.transitionHide = false;
         this.isDying = false;
         this.isDyingR = false;
         this.timer = false;
         GameEnv.invincible = false; 
-        this.transitionHide = false;
         
         // Player control data
         this.moveSpeed = this.speed * 3;
