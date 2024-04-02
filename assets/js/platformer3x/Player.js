@@ -223,6 +223,9 @@ export class Player extends Character {
     }
     
     updatePlayerMovementAndGravity() {
+        this.state.movement = { up: true, left: true, right: true, down: true };
+        this.gravityEnabled = true;
+
         switch (this.state.id) {
             case "jumpPlatform":
                 this.state.movement.down = false;
@@ -240,11 +243,6 @@ export class Player extends Character {
                     this.state.movement.right = true;
                 }
                 break;
-            default:
-                this.state.movement.left = true;
-                this.state.movement.right = true;
-                this.state.movement.down = true;
-                this.gravityEnabled = true;
         }
     }
 
