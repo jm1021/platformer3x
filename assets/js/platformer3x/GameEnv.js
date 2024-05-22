@@ -130,7 +130,7 @@ export class GameEnv {
     
         // game uses available width and height
         this.innerWidth = window.innerWidth;
-        this.innerHeight = window.innerHeight;
+        this.innerHeight = window.innerHeight - 60; // adjust for navbar
         this.setTop();
         //this.setBottom(); // must be called in platformer objects
     }
