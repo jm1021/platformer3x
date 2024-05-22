@@ -8,14 +8,10 @@ export class Background extends GameObject {
         super(canvas, image, data);
 
         this.canvasWidth = GameEnv.innerWidth;
-        
-        if (this.canvasWidth > GameEnv.innerHeight) {
-            this.canvasHeight = GameEnv.innerHeight * 0.7
-        }
 
-        else {
-            this.canvasHeight = this.canvasWidth / (16/9) // force 16:9
-        }
+        // New inner height accounts for navbar height and gives some space for platform
+        this.canvasHeight = GameEnv.innerHeight * 0.9;
+        // this.canvasHeight = this.canvasWidth / (16/9) - 120 // force 16:9 and account for bottom and nav
 
         console.log(`width:${this.canvasWidth}, height:${this.canvasHeight}`)
     }
