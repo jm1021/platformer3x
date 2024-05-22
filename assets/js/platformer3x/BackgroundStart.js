@@ -5,10 +5,9 @@ export class BackgroundStart extends Background {
     constructor(canvas, image, data) {
         super(canvas, image, data);
 
+        // take up whole screen
         this.canvasHeight = GameEnv.innerHeight;
     }
-
-    // Draw method to render the background image vertically
 }
 
 export default BackgroundStart;
