@@ -3,6 +3,7 @@ import GameEnv from './GameEnv.js';
 import GameLevel from './GameLevel.js';
 // To build GameLevels, each contains GameObjects from below imports
 import Background from './Background.js'
+import BackgroundStart from './BackgroundStart.js';
 import BackgroundParallax from './BackgroundParallax.js';
 import BackgroundTransitions from './BackgroundTransitions.js';
 import BackgroundSnow from './BackgroundSnow.js';
@@ -706,7 +707,7 @@ const GameSetup = {
     // Home screen added to the GameEnv ...
     new GameLevel({ tag: "start", callback: this.startGameCallback });
     const homeGameObjects = [
-      { name: 'background', id: 'background', class: Background, data: this.assets.backgrounds.start }
+      { name: 'background', id: 'background', class: BackgroundStart, data: this.assets.backgrounds.start }
     ];
     // Home Screen Background added to the GameEnv, "passive" means complementary, not an interactive level..
     new GameLevel({ tag: "home", callback: this.homeScreenCallback, objects: homeGameObjects, passive: true });
