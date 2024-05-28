@@ -4,6 +4,8 @@ import GameObject from './GameObject.js';
 export class FinishLine extends GameObject {
     constructor(canvas, image, data, xPercentage, yPercentage) {
         super(canvas, image, data);
+        this.xPercentage = xPercentage
+        this.yPercentage = yPercentage
         this.aspect_ratio = image.width / image.height;
         this.x = xPercentage * GameEnv.innerWidth;
         this.y = yPercentage * GameEnv.bottom;
@@ -17,8 +19,11 @@ export class FinishLine extends GameObject {
     draw() {
         this.ctx.drawImage(this.image, 0, 0, this.canvas.width, this.canvas.height);
     }
-
+    
     size() {
+        this.x = this.xPercentage * GameEnv.innerWidth;
+        this.y = this.yPercentage * GameEnv.bottom;
+
         const scaledHeight = GameEnv.innerHeight * (this.scaleSize / 832);
         const scaledWidth = scaledHeight * this.aspect_ratio;
         const finishlineX = this.x;
