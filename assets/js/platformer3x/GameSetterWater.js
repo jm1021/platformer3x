@@ -55,26 +55,26 @@ const assets = {
     },
     players: {
       mario: {
-        src: "/images/platformer/sprites/mario.png",
-        width: 256,
-        height: 256,
-        scaleSize: 80,
+        src: "/images/platformer/sprites/underwaterplayer.png",
+        width: 71,
+        height: 71,
+        scaleSize: 95,
         speedRatio: 0.7,
         idle: {
-          left: { row: 1, frames: 15 },
-          right: { row: 0, frames: 15 },
+          left: { row: 5, min: 4, frames: 1 },
+          right: { row: 0, min: 1, frames: 1 },
         },
         walk: {
-          left: { row: 3, frames: 7 },
-          right: { row: 2, frames: 7 },
+          left: { row: 9, frames: 4 },
+          right: { row: 4, frames: 4 },
         },
         run: {
-          left: { row: 5, frames: 15 },
-          right: { row: 4, frames: 15 },
+          left: { row: 9, frames: 4 },
+          right: { row: 4, frames: 4 },
         },
         jump: {
-          left: { row: 11, frames: 15 },
-          right: { row: 10, frames: 15 },
+          left: { row: 5, frames: 1 },
+          right: { row: 0, frames: 1 },
         },
         hitbox: { widthPercentage: 0.3, heightPercentage: 0.8 }
       },
