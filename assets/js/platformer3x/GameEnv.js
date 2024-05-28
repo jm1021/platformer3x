@@ -140,6 +140,7 @@ export class GameEnv {
      * @static
      */    
     static resize() {
+        console.log("update")
         GameEnv.initialize();  // Update GameEnv dimensions
   
         // Call the sizing method on all game objects

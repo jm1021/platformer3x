@@ -14,8 +14,8 @@ export class Background extends GameObject {
         this.canvasWidth = GameEnv.innerWidth;
 
         // New inner height accounts for navbar height and gives some space for platform
-        this.canvasHeight = GameEnv.innerHeight * 0.9;
-        // this.canvasHeight = this.canvasWidth / (16/9) - 120 // force 16:9 and account for bottom and nav
+        // this.canvasHeight = GameEnv.innerHeight * 0.9;a
+        this.canvasHeight = this.canvasWidth / (16/9) - 120 // force 16:9 and account for bottom and nav
 
         console.log(`width:${this.canvasWidth}, height:${this.canvasHeight}`)
     }
@@ -63,6 +63,10 @@ export class Background extends GameObject {
     /* Background camvas is set to screen sizes
     */ 
     size() {
+        this.canvasWidth = GameEnv.innerWidth
+        // this.canvasHeight = GameEnv.innerHeight * 0.9
+        this.canvasHeight = this.canvasWidth / (16/9) - 120 
+
         // Update canvas size
         const canvasLeft = 0;
         GameEnv.backgroundHeight = this.canvasHeight;
@@ -77,6 +81,7 @@ export class Background extends GameObject {
 
         // set bottom of game to new background height
         GameEnv.setBottom(); 
+        this.draw()
     }
 }
 
