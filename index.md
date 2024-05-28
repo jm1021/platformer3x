@@ -8,10 +8,10 @@ image: /images/platformer/backgrounds/home.png
 <!-- Syle is now located, as of Jan 2024 v2.0, in _sass/minima/dracula/platformer-styles.scss -->
 
 <!-- DOM Settings Panel (sidebar id and div), managed by SettingsContro.js -->
-<div id="sidebar" class="sidebar">
+<div id="sidebar" class="sidebar" style="z-index: 9999">
     <a href="javascript:void(0)" id="sidebar-header">&times; Settings</a>
   </div>
-  <div id="leaderboardDropDown" class="leaderboardDropDown">
+  <div id="leaderboardDropDown" class="leaderboardDropDown" style="z-index: 9999">
     <!-- <a href="javascript:void(0)" id="leaderboard-header">&times; Leaderboard</a> -->
   </div>
   
@@ -31,10 +31,19 @@ image: /images/platformer/backgrounds/home.png
   <audio id ="coin" src="{{site.baseurl}}/assets/audio/coin.mp3" preload="auto"></audio>
 
 <!--Audio for when it hits top of platform -->
-  <audio id ="stomp" src="{{site.basurl}}/assets/audio/stomp2-93279.mp3" preload="auto"></audio>
+  <audio id ="stomp" src="{{site.baseurl}}/assets/audio/stomp2-93279.mp3" preload="auto"></audio>
 
   <!--Audo for when it hits the sides of platform -->    
   <audio id = "boing" src ="{{site.baseurl}}/assets/audio/boing-101318.mp3" preload="auto"></audio>
+
+  <!--Audo for flushing -->    
+  <audio id = "flush" src ="{{site.baseurl}}/assets/audio/toilet-flushing.mp3" preload="auto"></audio>
+  
+  <!--Audo for laser -->    
+  <audio id = "laserSound" src ="{{site.baseurl}}/assets/audio/laser.mp3" preload="auto"></audio>
+
+  <audio id = "laserCharge" src ="{{site.baseurl}}/assets/audio/charging-laser.mp3" preload="auto"></audio>
+  
   
   <!-- Wrap both the controls and gameplay in a container div -->
   <div id="canvasContainer">
@@ -65,7 +74,7 @@ image: /images/platformer/backgrounds/home.png
   <div id="container">
       <header class="fun_facts">
       <p id="num">Fun Fact #0</p>
-      <h3 id="fun_fact">Mario is named after frustrated landlord, Mario Segale, of the Nintendo of America building.</h3> <!-- want to access later so have id-->
+      <h3 id="fun_fact">Mario is named after the frustrated landlord, Mario Segale, of the Nintendo of America building.</h3> <!-- want to access later so have id-->
       </header>
     </div>
   
@@ -93,8 +102,7 @@ image: /images/platformer/backgrounds/home.png
       */
   
       // Setup game data, the objects and levels
-      GameSetup.initLevels("{{site.baseurl}}"); 
-  
+      GameSetup.initLevels("{{site.baseurl}}");   
       /* 
        * ==========================================
        * ========== Game Control ==================
