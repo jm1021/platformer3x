@@ -104,18 +104,24 @@ class Character extends GameObject {
     /* Method should be called on initialization and resize events 
      * intent is to size character in proportion to the screen size
     */
+
     size() {
-        // set Canvas scale,  80 represents size of Character height when inner Height is 832px
-        var scaledCharacterHeight = GameEnv.innerHeight * (this.scaleSize / 832);
-        var canvasScale = scaledCharacterHeight/this.spriteHeight;
+        // Constants
+        const referenceWidth = 1024;  // reference width for scaling
+
+        // Calculate the canvas scale based on innerWidth
+        var scaledCharacterWidth = GameEnv.innerWidth * (this.scaleSize / referenceWidth);
+        var canvasScale = scaledCharacterWidth / this.spriteWidth;
+
+        // Set the canvas dimensions
         this.canvasHeight = this.spriteHeight * canvasScale;
         this.canvasWidth = this.spriteWidth * canvasScale;
 
-        // set variables used in Display and Collision algorithms
+        // Update variables for display and collision algorithms
         this.bottom = GameEnv.bottom - this.canvasHeight;
         this.collisionHeight = this.canvasHeight;
         this.collisionWidth = this.canvasWidth;
-
+    
         // calculate Proportional x and y positions based on size of screen dimensions
         if (GameEnv.prevInnerWidth) {
             const proportionalX = (this.x / GameEnv.prevInnerWidth) * GameEnv.innerWidth;
