@@ -4,6 +4,8 @@ import GameObject from './GameObject.js';
 export class MovingPlatform extends GameObject {
     constructor(canvas, image, data, xPercentage, yPercentage) {
         super(canvas, image, data);
+        this.xPercentage = xPercentage
+        this.yPercentage = yPercentage
         this.platformX = xPercentage * GameEnv.innerWidth;
         this.platformY = yPercentage;
         this.direction = -1; // Move up
@@ -45,7 +47,7 @@ export class MovingPlatform extends GameObject {
         // Formula for Height should be on constant ratio, using a proportion of 832
         const scaledHeight = GameEnv.innerWidth * (1/27);
         const scaledWidth = scaledHeight;  // width of jump platform is 1/10 of height
-        const platformX = this.platformX;
+        const platformX = this.xPercentage * GameEnv.innerWidth
         const platformY = (GameEnv.bottom - scaledHeight) * this.platformY;
         // set variables used in Display and Collision algorithms
         this.bottom = platformY;

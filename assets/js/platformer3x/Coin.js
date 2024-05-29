@@ -5,6 +5,8 @@ import GameObject from './GameObject.js';
 export class Coin extends GameObject {
     constructor(canvas, image, data, xPercentage, yPercentage) {
         super(canvas, image, data, 0.5, 0.5);
+        this.xPercentage = xPercentage
+        this.yPercentage = yPercentage
         this.coinX = xPercentage * GameEnv.innerWidth;
         this.coinY = yPercentage;
         this.size();
@@ -38,30 +40,42 @@ export class Coin extends GameObject {
     }
 
     // Center and set Coin position with adjustable height and width
+    // Center and set Coin position with adjustable height and width
     size() {
         if (this.id) {
             if (GameEnv.claimedCoinIds.includes(this.id)) {
-                this.hide()
+                this.hide();
+                return;
             }
         }
 
-        const scaledWidth = this.image.width * 0.2;
-        const scaledHeight = this.image.height * 0.169;
+        // Constants
+        const referenceWidth = 400; // Adjust this value to the original width for scaling
+        const referenceHeight = 300; // Adjust this value to the original height for scaling
 
-        const coinX = this.coinX;
-        const coinY = (GameEnv.bottom - scaledHeight) * this.coinY;
+        // Calculate the canvas scale based on innerWidth
+        var canvasScaleWidth = GameEnv.innerWidth / referenceWidth;
+        var canvasScaleHeight = GameEnv.innerHeight / referenceHeight;
+        var canvasScale = Math.min(canvasScaleWidth, canvasScaleHeight); // Use the smaller scale for uniform scaling
+
+        // Set the scaled dimensions
+        const scaledWidth = this.image.width * canvasScale * 0.2; // Adjust the 0.2 scaling factor if needed
+        const scaledHeight = this.image.height * canvasScale * 0.169; // Adjust the 0.169 scaling factor if needed
 
         // Set variables used in Display and Collision algorithms
-        this.bottom = coinY;
         this.collisionHeight = scaledHeight;
         this.collisionWidth = scaledWidth;
+        this.bottom = (GameEnv.bottom - scaledHeight) * this.coinY
 
+        // Set the canvas style dimensions and positions
         this.canvas.style.width = `${scaledWidth}px`;
         this.canvas.style.height = `${scaledHeight}px`;
         this.canvas.style.position = 'absolute';
-        this.canvas.style.left = `${coinX}px`;
-        this.canvas.style.top = `${coinY}px`;
+        this.canvas.style.left = `${this.coinX}px`;
+        this.canvas.style.top = `${this.coinY}px`;
     }
+
+
     collisionAction() {
         // check player collision
         if (this.collisionData.touchPoints.other.id === "player") {
