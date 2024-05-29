@@ -24,8 +24,8 @@ export class FinishLine extends GameObject {
         this.x = this.xPercentage * GameEnv.innerWidth;
         this.y = this.yPercentage * GameEnv.bottom;
 
-        const scaledHeight = GameEnv.innerHeight * (this.scaleSize / 832);
-        const scaledWidth = scaledHeight * this.aspect_ratio;
+        const scaledWidth = GameEnv.innerWidth / 10 ;
+        const scaledHeight = scaledWidth / this.aspect_ratio
         const finishlineX = this.x;
         const finishlineY = this.y;
 
